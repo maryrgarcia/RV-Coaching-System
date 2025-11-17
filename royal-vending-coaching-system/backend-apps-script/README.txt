@@ -1,1 +1,0 @@
-Deploy this Apps Script: create new script in Google Sheets -> paste Code.gs -> Deploy > New deployment > Web app > Execute as: Me; Who has access: Anyone, even anonymous (or restrict). Then copy the deployment URL into assets/js/auth.js and assets/js/api.js
