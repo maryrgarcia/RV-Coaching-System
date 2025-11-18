@@ -1,6 +1,5 @@
-const API_BASE = "https://script.google.com/macros/s/AKfycbwvoK-o8GyoSLb6hBZwpm7u2CJy7HSUTxUtQuDOjyz0OqrzsYdkMw4YKh_XNXmAv2-_Pw/exec";
+const API_BASE = "https://script.google.com/macros/s/AKfycbzhxhsILqRzZiLpFndMt7-AwACI2ebYA_7cxYCNkHRXNetVzfFnDMq8RM_T7tBISRO-Mw/exec";
 
-// Safe API POST helper
 async function apiPost(endpoint, data = {}) {
     const response = await fetch(`${API_BASE}?endpoint=${endpoint}`, {
         method: "POST",
@@ -11,20 +10,13 @@ async function apiPost(endpoint, data = {}) {
     return response.json();
 }
 
-// Wait until DOM is fully loaded
 document.addEventListener("DOMContentLoaded", () => {
     const loginBtn = document.getElementById("loginBtn");
-
-    if (!loginBtn) return; // Exit if no login button on this page
+    if (!loginBtn) return;
 
     loginBtn.addEventListener("click", async () => {
         const usernameField = document.getElementById("username");
         const passwordField = document.getElementById("password");
-
-        if (!usernameField || !passwordField) {
-            alert("Login fields are missing on this page.");
-            return;
-        }
 
         const username = usernameField.value.trim();
         const password = passwordField.value.trim();
@@ -39,12 +31,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (result.success) {
                 localStorage.setItem("user", JSON.stringify(result.user));
-                window.location.href = "dashboard.html";
+
+                // Role-based redirect
+                if (result.user.role === "admin") {
+                    window.location.href = "dashboard.html";
+                } else if (result.user.role === "evaluator") {
+                    window.location.href = "evaluations.html";
+                } else if (result.user.role === "agent") {
+                    window.location.href = "dashboard.html"; // or agent-specific page
+                } else {
+                    alert("Unknown role");
+                }
             } else {
                 alert(result.message || "Invalid login");
             }
-        } catch (error) {
-            console.error("Login error:", error);
+        } catch (err) {
+            console.error(err);
             alert("Cannot connect to server. Check Apps Script deployment.");
         }
     });
