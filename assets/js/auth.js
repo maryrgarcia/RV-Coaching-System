@@ -1,4 +1,4 @@
-const API_BASE = "https://script.google.com/macros/s/AKfycbzhxhsILqRzZiLpFndMt7-AwACI2ebYA_7cxYCNkHRXNetVzfFnDMq8RM_T7tBISRO-Mw/exec";
+const API_BASE = "PASTE_YOUR_WEB_APP_URL_HERE";
 
 async function apiPost(endpoint, data = {}) {
     const response = await fetch(`${API_BASE}?endpoint=${endpoint}`, {
@@ -15,11 +15,8 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!loginBtn) return;
 
     loginBtn.addEventListener("click", async () => {
-        const usernameField = document.getElementById("username");
-        const passwordField = document.getElementById("password");
-
-        const username = usernameField.value.trim();
-        const password = passwordField.value.trim();
+        const username = document.getElementById("username").value.trim();
+        const password = document.getElementById("password").value.trim();
 
         if (!username || !password) {
             alert("Please enter username and password");
@@ -32,18 +29,13 @@ document.addEventListener("DOMContentLoaded", () => {
             if (result.success) {
                 localStorage.setItem("user", JSON.stringify(result.user));
 
-                // Role-based redirect
-                if (result.user.role === "admin") {
-                    window.location.href = "dashboard.html";
-                } else if (result.user.role === "evaluator") {
-                    window.location.href = "evaluations.html";
-                } else if (result.user.role === "agent") {
-                    window.location.href = "dashboard.html"; // or agent-specific page
-                } else {
-                    alert("Unknown role");
-                }
+                // Redirect based on role
+                if (result.user.role === "admin") window.location.href = "dashboard.html";
+                else if (result.user.role === "evaluator") window.location.href = "evaluations.html";
+                else if (result.user.role === "agent") window.location.href = "dashboard.html";
+                else alert("Unknown role");
             } else {
-                alert(result.message || "Invalid login");
+                alert(result.message);
             }
         } catch (err) {
             console.error(err);
