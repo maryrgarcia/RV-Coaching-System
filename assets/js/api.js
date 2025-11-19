@@ -1,4 +1,4 @@
-const API_BASE = "https://script.google.com/macros/s/AKfycbyNfryd61KHxQr_E3aOQAhiLn1OQiG7Tup9x9ojij44TtH3hTqFrSGVTAxwCWiK_mV8qw/exec";
+const API_BASE = "https://script.google.com/macros/s/AKfycbwPDm0-pMqPOUfyP6OknUuhodt5xpYCdzfImIh-z5BQ3t24Wg02u9T_lY0zyV1uT6-u/exec";
 
 async function apiPost(endpoint, data = {}) {
     const response = await fetch(`${API_BASE}?endpoint=${endpoint}`, {
