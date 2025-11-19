@@ -1,46 +1,30 @@
-document.addEventListener("DOMContentLoaded", () => {
-  console.log("auth.js loaded");
+const loginBtn = document.getElementById("loginBtn");
+const signupBtn = document.getElementById("signupBtn");
+const authMessage = document.getElementById("authMessage");
 
-  const loginBtn = document.getElementById("loginBtn");
-  const createBtn = document.getElementById("createAccountBtn");
+loginBtn.addEventListener("click", async () => {
+  const email = document.getElementById("username").value.trim();
+  const password = document.getElementById("password").value.trim();
 
-  // LOGIN
-  if (loginBtn) {
-    loginBtn.addEventListener("click", async () => {
-      const username = document.getElementById("username").value.trim();
-      const password = document.getElementById("password").value.trim();
-
-      if (!username || !password) {
-        alert("Please enter username/email and password");
-        return;
-      }
-
-      const result = await apiPost("login", { email: username, password });
-
-      console.log("Login result:", result);
-
-      if (result.success) {
-        localStorage.setItem("user", JSON.stringify(result.user));
-
-        // Redirect based on role
-        const role = result.user.role.toLowerCase();
-        if (role === "admin") {
-          window.location.href = "dashboard.html";
-        } else if (role === "evaluator") {
-          window.location.href = "evaluations.html";
-        } else {
-          window.location.href = "agent.html";
-        }
-      } else {
-        alert(result.message);
-      }
-    });
+  if (!email || !password) {
+    authMessage.textContent = "Please enter username/email and password";
+    return;
   }
 
-  // CREATE ACCOUNT
-  if (createBtn) {
-    createBtn.addEventListener("click", () => {
-      window.location.href = "signup.html";
-    });
+  const result = await apiPost({ action: "login", payload: { email, password } });
+
+  if (result.success) {
+    authMessage.textContent = "Login successful!";
+    // Role-based redirect
+    const role = result.user.role.toLowerCase();
+    if (role === "admin") window.location.href = "dashboard.html";
+    else if (role === "evaluator") window.location.href = "evaluations.html";
+    else window.location.href = "agent.html";
+  } else {
+    authMessage.textContent = result.message;
   }
+});
+
+signupBtn.addEventListener("click", () => {
+  window.location.href = "signup.html";
 });
