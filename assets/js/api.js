@@ -1,4 +1,3 @@
-// Set to your Netlify function URL
 const API_BASE = "/.netlify/functions/proxy";
 
 async function apiPost(payload) {
