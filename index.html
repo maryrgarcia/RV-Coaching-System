@@ -10,15 +10,22 @@
   <div class="auth-screen">
     <div class="auth-card">
       <h2>Royal Vending Portal</h2>
-      <input id="email" placeholder="Email" />
+
+      <!-- CHANGED "email" to "username" -->
+      <input id="username" placeholder="Username" />
       <input id="password" type="password" placeholder="Password" />
+
       <div class="auth-actions">
-        <button id="btnSignIn" class="btn">Sign in</button>
-        <button id="btnShowSignup" class="btn">Create account</button>
+        <!-- IDs updated to match auth.js -->
+        <button id="loginBtn" class="btn">Sign In</button>
+        <button id="createAccountBtn" class="btn">Create Account</button>
       </div>
+
       <p id="authMessage" class="muted"></p>
     </div>
   </div>
+
+  <script src="assets/js/api.js"></script>
   <script src="assets/js/auth.js"></script>
 </body>
 </html>
