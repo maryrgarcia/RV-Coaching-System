@@ -1,86 +1,89 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta charset="UTF-8">
   <title>Royal Vending — Login</title>
-  <link rel="stylesheet" href="assets/css/style.css">
   <style>
-    /* Minimal clean style for login */
     body {
       font-family: 'Inter', sans-serif;
-      background: #f8f9fa;
-      margin: 0;
       display: flex;
       justify-content: center;
       align-items: center;
       height: 100vh;
+      background: #f8f9fa;
+      margin: 0;
     }
     .auth-card {
-      background: #fff;
+      background: white;
       padding: 2rem;
       border-radius: 8px;
       box-shadow: 0 4px 15px rgba(0,0,0,0.1);
       width: 320px;
       text-align: center;
     }
-    .auth-card h2 {
-      color: #0d2a5f; /* Royal blue */
-      margin-bottom: 1.5rem;
-    }
     .auth-card input {
       width: 100%;
       padding: 0.75rem;
       margin-bottom: 1rem;
-      border: 1px solid #ccc;
       border-radius: 4px;
-      font-size: 1rem;
-    }
-    .auth-actions {
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
+      border: 1px solid #ccc;
     }
     .btn {
-      background: #0d2a5f;
-      color: #fff;
-      border: none;
+      width: 100%;
       padding: 0.75rem;
+      margin-bottom: 0.75rem;
+      border: none;
+      background: #0d2a5f;
+      color: white;
+      cursor: pointer;
       border-radius: 4px;
       font-size: 1rem;
-      cursor: pointer;
     }
-    .btn:hover {
-      background: #1440a3;
-    }
-    .muted {
-      color: #666;
-      margin-top: 1rem;
-      font-size: 0.875rem;
-    }
+    .btn:hover { background: #1440a3; }
+    .muted { color: #666; font-size: 0.875rem; }
   </style>
 </head>
 <body>
-  <div class="auth-screen">
-    <div class="auth-card">
-      <h2>Royal Vending Portal</h2>
-
-      <!-- Inputs -->
-      <input id="username" placeholder="Username or Email" />
-      <input id="password" type="password" placeholder="Password" />
-
-      <!-- Buttons -->
-      <div class="auth-actions">
-        <button id="loginBtn" class="btn">Sign In</button>
-        <button id="createAccountBtn" class="btn">Create Account</button>
-      </div>
-
-      <p id="authMessage" class="muted">Enter your credentials to log in.</p>
-    </div>
+  <div class="auth-card">
+    <h2>Royal Vending Portal</h2>
+    <input id="username" placeholder="Username or Email">
+    <input id="password" type="password" placeholder="Password">
+    <button class="btn" id="loginBtn">Sign In</button>
+    <button class="btn" id="signupBtn">Create Account</button>
+    <p class="muted" id="authMessage">Enter your credentials to log in.</p>
   </div>
 
-  <!-- JS -->
-  <script src="assets/js/api.js?v=101"></script>
-  <script src="assets/js/auth.js?v=101"></script>
+  <script>
+    const loginBtn = document.getElementById('loginBtn');
+    const signupBtn = document.getElementById('signupBtn');
+    const authMessage = document.getElementById('authMessage');
+
+    loginBtn.addEventListener('click', () => {
+      const email = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value.trim();
+
+      if(!email || !password){
+        authMessage.textContent = "Please enter username/email and password";
+        return;
+      }
+
+      google.script.run.withSuccessHandler(result => {
+        if(result.success){
+          const role = result.user.role.toLowerCase();
+          authMessage.textContent = "Login successful! Redirecting...";
+          // Example redirects
+          if(role==='admin') window.location.href='dashboard.html';
+          else if(role==='evaluator') window.location.href='evaluations.html';
+          else window.location.href='agent.html';
+        } else {
+          authMessage.textContent = result.message;
+        }
+      }).login({email,password});
+    });
+
+    signupBtn.addEventListener('click', () => {
+      window.location.href = 'signup.html';
+    });
+  </script>
 </body>
 </html>
