@@ -1,15 +1,22 @@
+// API BASE URL (Netlify function)
 const API_BASE = "/.netlify/functions/proxy";
 
-async function apiPost(payload) {
+async function apiPost(action, payload = {}) {
   try {
-    const response = await fetch(API_BASE, {
+    const res = await fetch(API_BASE, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
+      body: JSON.stringify({ action, payload })
     });
-    return await response.json();
+
+    const text = await res.text();
+    try {
+      return JSON.parse(text);
+    } catch {
+      return { success: false, message: "Bad JSON response from server" };
+    }
+
   } catch (err) {
-    console.error("API POST error:", err);
-    return { success: false, message: "Request failed" };
+    return { success: false, message: String(err) };
   }
 }
