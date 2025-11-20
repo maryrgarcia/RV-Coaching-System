@@ -1,10 +1,7 @@
-// api-firebase.js
-// UMD Firebase helper functions
-// Replace the firebaseConfig below with your project config
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
+  apiKey: "YAIzaSyC4Uv0ngzbDDClXZ3SzZzkbL6xPoS3rQ4g",
+  authDomain: "rv-coaching-system.firebaseapp.com",
+  projectId: "rv-coaching-system",
 };
 
 firebase.initializeApp(firebaseConfig);
