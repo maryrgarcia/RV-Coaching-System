@@ -4,85 +4,277 @@
   <meta charset="UTF-8">
   <title>Evaluations — Royal Vending</title>
   <link rel="stylesheet" href="assets/css/style.css">
+
+  <style>
+    /* Simple inline modal styling */
+    .modal-bg {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      align-items: center;
+      justify-content: center;
+    }
+    .modal {
+      background: white;
+      padding: 20px;
+      width: 400px;
+      border-radius: 8px;
+    }
+  </style>
 </head>
+
 <body>
 
-  <header>
-    <img src="assets/images/logo.png" class="logo">
-    <nav>
-      <a href="dashboard.html">Dashboard</a>
-      <a href="evaluations.html">Evaluations</a>
-      <a href="coaching.html">Coaching Logs</a>
-      <a href="reports.html">Reports</a>
-      <a href="admin.html">Admin</a>
-      <button id="logoutBtn">Logout</button>
-    </nav>
-  </header>
+<header>
+  <img src="assets/images/logo.png" class="logo">
+  <nav>
+    <a href="dashboard.html">Dashboard</a>
+    <a href="evaluations.html" class="active">Evaluations</a>
+    <a href="coaching.html">Coaching Logs</a>
+    <a href="reports.html">Reports</a>
+    <a href="admin.html">Admin</a>
+    <button id="logoutBtn">Logout</button>
+  </nav>
+</header>
 
-  <main>
-    <h1>Evaluations</h1>
+<main>
+  <h1>Evaluations</h1>
 
-    <button id="addEvalBtn"
-      onclick="window.location.href='add-evaluation.html'">
-      + Add Evaluation
-    </button>
+  <!-- FILTER BAR -->
+  <div class="filter-bar">
+    <select id="filterMember">
+      <option value="">Team Member</option>
+    </select>
 
-    <table id="evalTable" border="1">
-      <thead>
-        <tr>
-          <th>Member</th>
-          <th>Evaluator</th>
-          <th>Date</th>
-          <th>Total</th>
-          <th>Notes</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </main>
+    <select id="filterMonth">
+      <option value="">Month</option>
+    </select>
 
-  <!-- Firebase Modular Script -->
-  <script type="module">
-    import { listEvaluations, logoutUser } from './api-firebase.js';
+    <select id="filterEvaluator">
+      <option value="">Evaluator</option>
+    </select>
 
-    // Redirect if not logged in
-    const user = sessionStorage.getItem('rvc_user');
-    if (!user) {
-      window.location.href = 'index.html';
-    }
+    <select id="filterScore">
+      <option value="">Score Range</option>
+      <option value="90-100">90 - 100</option>
+      <option value="80-89">80 - 89</option>
+      <option value="70-79">70 - 79</option>
+      <option value="0-69">Below 70</option>
+    </select>
 
-    // Logout
-    document.getElementById('logoutBtn').addEventListener('click', async () => {
-      await logoutUser();
-      sessionStorage.removeItem('rvc_user');
-      window.location.href = 'index.html';
+    <input type="text" id="filterSearch" placeholder="Search...">
+    <button id="applyFilters">Search</button>
+  </div>
+
+  <button id="openEvalModal">+ Add New Evaluation</button>
+
+  <!-- EVALUATIONS TABLE -->
+  <table id="evalTable" border="1">
+    <thead>
+      <tr>
+        <th>Team Member</th>
+        <th>Evaluator</th>
+        <th>Total Score</th>
+        <th>Key Strength</th>
+        <th>Area for Improvement</th>
+        <th>View</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+</main>
+
+<!-- ADD EVALUATION MODAL -->
+<div class="modal-bg" id="evalModal">
+  <div class="modal">
+    <h3>New Evaluation</h3>
+
+    <label>Team Member</label>
+    <select id="evMember"></select>
+
+    <label>Evaluation Date</label>
+    <input type="date" id="evDate">
+
+    <label>Evaluator</label>
+    <select id="evEvaluator"></select>
+
+    <h4>Skill Scores (1–5)</h4>
+
+    <label>Communication</label>
+    <input type="number" id="sc1" min="1" max="5">
+
+    <label>Relationship Building</label>
+    <input type="number" id="sc2" min="1" max="5">
+
+    <label>Problem-Solving</label>
+    <input type="number" id="sc3" min="1" max="5">
+
+    <label>Task Management</label>
+    <input type="number" id="sc4" min="1" max="5">
+
+    <label>Customer Service</label>
+    <input type="number" id="sc5" min="1" max="5">
+
+    <label>Analytical & Reporting Skills</label>
+    <input type="number" id="sc6" min="1" max="5">
+
+    <label>Accuracy & Attention to Detail</label>
+    <input type="number" id="sc7" min="1" max="5">
+
+    <label>Comments / Notes</label>
+    <textarea id="evNotes"></textarea>
+
+    <label>Total Score</label>
+    <input id="evTotal" readonly>
+
+    <button id="submitEval">Submit Evaluation</button>
+    <button id="closeEvalModal">Cancel</button>
+  </div>
+</div>
+
+<!-- FIREBASE MODULAR -->
+<script type="module">
+  import {
+    listEvaluations,
+    addEvaluation,
+    adminListAll,
+    logoutUser
+  } from './api-firebase.js';
+
+  const user = sessionStorage.getItem("rvc_user");
+  if (!user) window.location.href = "index.html";
+
+  // ============= LOGOUT =============
+  document.getElementById("logoutBtn").addEventListener("click", async () => {
+    await logoutUser();
+    sessionStorage.removeItem("rvc_user");
+    window.location.href = "index.html";
+  });
+
+  // ============= LOAD FILTER OPTIONS =============
+  async function loadFilters() {
+    const data = await adminListAll();
+
+    const memberSel = document.getElementById("filterMember");
+    const evaluatorSel = document.getElementById("filterEvaluator");
+
+    data.users.forEach(u => {
+      evaluatorSel.innerHTML += `<option value="${u.name}">${u.name}</option>`;
     });
 
-    // Load evaluations from Firestore
-    async function loadEvaluations() {
-      try {
-        const list = await listEvaluations();
-        const tbody = document.querySelector('#evalTable tbody');
-        tbody.innerHTML = '';
+    data.members.forEach(m => {
+      memberSel.innerHTML += `<option value="${m[0]}">${m[0]}</option>`;
+    });
+  }
 
-        list.forEach(e => {
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td>${e.member || '-'}</td>
-            <td>${e.evaluator || '-'}</td>
-            <td>${e.date || '-'}</td>
-            <td>${e.total || '-'}</td>
-            <td>${e.notes || '-'}</td>
-          `;
-          tbody.appendChild(tr);
-        });
+  // ============= LOAD TABLE =============
+  async function loadEvaluations(filteredList = null) {
+    const tbody = document.querySelector("#evalTable tbody");
+    tbody.innerHTML = "";
 
-      } catch (err) {
-        console.error("Evaluation load error:", err);
-      }
-    }
+    const list = filteredList || await listEvaluations();
 
-    loadEvaluations();
-  </script>
+    list.forEach(r => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${r.member}</td>
+        <td>${r.evaluator}</td>
+        <td>${r.total}</td>
+        <td>${r.strength || "-"}</td>
+        <td>${r.improvement || "-"}</td>
+        <td><button onclick="alert('Detail page coming soon')">View</button></td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  // ============= FILTER LOGIC =============
+  document.getElementById("applyFilters").addEventListener("click", async () => {
+    const list = await listEvaluations();
+
+    const member = document.getElementById("filterMember").value;
+    const month = document.getElementById("filterMonth").value;
+    const evaluator = document.getElementById("filterEvaluator").value;
+    const score = document.getElementById("filterScore").value;
+    const search = document.getElementById("filterSearch").value.toLowerCase();
+
+    let filtered = list;
+
+    if (member) filtered = filtered.filter(r => r.member === member);
+    if (evaluator) filtered = filtered.filter(r => r.evaluator === evaluator);
+    if (search) filtered = filtered.filter(r =>
+      JSON.stringify(r).toLowerCase().includes(search)
+    );
+
+    loadEvaluations(filtered);
+  });
+
+  // ============= MODAL CONTROL =============
+  const modal = document.getElementById("evalModal");
+  document.getElementById("openEvalModal").onclick = () => modal.style.display = "flex";
+  document.getElementById("closeEvalModal").onclick = () => modal.style.display = "none";
+
+  // ============= FILL MODAL SELECTS =============
+  async function fillModalSelects() {
+    const data = await adminListAll();
+    const evMember = document.getElementById("evMember");
+    const evEvaluator = document.getElementById("evEvaluator");
+
+    data.members.forEach(m => {
+      evMember.innerHTML += `<option value="${m[0]}">${m[0]}</option>`;
+    });
+
+    data.users.forEach(u => {
+      evEvaluator.innerHTML += `<option value="${u.name}">${u.name}</option>`;
+    });
+  }
+
+  // ============= TOTAL SCORE AUTO-CALC =============
+  function calcTotal() {
+    const values = [
+      "sc1","sc2","sc3","sc4","sc5","sc6","sc7"
+    ].map(id => Number(document.getElementById(id).value || 0));
+
+    const total = values.reduce((a,b) => a + b, 0);
+    document.getElementById("evTotal").value = total;
+  }
+
+  ["sc1","sc2","sc3","sc4","sc5","sc6","sc7"].forEach(id => {
+    document.getElementById(id).addEventListener("input", calcTotal);
+  });
+
+  // ============= SUBMIT EVALUATION =============
+  document.getElementById("submitEval").addEventListener("click", async () => {
+    const payload = {
+      member: document.getElementById("evMember").value,
+      evaluator: document.getElementById("evEvaluator").value,
+      date: document.getElementById("evDate").value,
+      communication: Number(sc1.value),
+      relationship: Number(sc2.value),
+      problemSolving: Number(sc3.value),
+      taskManagement: Number(sc4.value),
+      customerService: Number(sc5.value),
+      analytical: Number(sc6.value),
+      accuracy: Number(sc7.value),
+      notes: document.getElementById("evNotes").value,
+      total: Number(document.getElementById("evTotal").value),
+      strength: "N/A",
+      improvement: "N/A"
+    };
+
+    await addEvaluation(payload);
+    modal.style.display = "none";
+    await loadEvaluations();
+  });
+
+  // INIT
+  loadFilters();
+  fillModalSelects();
+  loadEvaluations();
+
+</script>
+
 </body>
 </html>
