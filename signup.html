@@ -1,16 +1,72 @@
-<script>
-document.getElementById("signupBtn").addEventListener("click", async () => {
-  const name = document.getElementById("name").value;
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
-  const role = document.getElementById("role").value; // optional
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign Up</title>
 
-  try {
-    const user = await signupCreateUser(email, password, name, role);
-    alert("Account created! You may now log in.");
-    window.location.href = "index.html";
-  } catch (err) {
-    alert("Signup failed: " + err.message);
-  }
-});
-</script>
+  <!-- Firebase CDN (must be BEFORE api-firebase.js) -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
+
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+  <div class="container">
+    <h2>Create Account</h2>
+
+    <label>Name</label>
+    <input type="text" id="name">
+
+    <label>Email</label>
+    <input type="email" id="email">
+
+    <label>Password</label>
+    <input type="password" id="password">
+
+    <label>Role</label>
+    <select id="role">
+      <option value="agent">Agent</option>
+      <option value="admin">Admin</option>
+    </select>
+
+    <button id="signupBtn">Create Account</button>
+
+    <p><a href="index.html">Back to Login</a></p>
+  </div>
+
+  <!-- Your Firebase functions -->
+  <script src="api-firebase.js"></script>
+
+  <script>
+  document.addEventListener("DOMContentLoaded", () => {
+
+    const btn = document.getElementById("signupBtn");
+
+    if (!btn) {
+      console.error("signupBtn not found — check ID in HTML");
+      return;
+    }
+
+    btn.addEventListener("click", async () => {
+      const name = document.getElementById("name").value.trim();
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value.trim();
+      const role = document.getElementById("role").value;
+
+      try {
+        const user = await signupCreateUser(email, password, name, role);
+        alert("Account created! You may now log in.");
+        window.location.href = "index.html";
+      } catch (err) {
+        alert("Signup failed: " + err.message);
+      }
+    });
+
+  });
+  </script>
+
+</body>
+</html>
