@@ -1,6 +1,9 @@
-// -------------------------
-// FIREBASE CONFIG
-// -------------------------
+// Import the functions you need from the SDKs you use
+import { initializeApp } from "firebase/app";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "firebase/auth"; // Specific Auth functions
+import { getFirestore, collection, addDoc, doc, setDoc, getDoc, updateDoc, getDocs, query } from "firebase/firestore"; // Specific Firestore functions
+
+// Your Firebase project configuration
 const firebaseConfig = {
   apiKey: "AIzaSyC4Uv0ngzbDDClXZ3SzZzkbL6xPoS3rQ4g",
   authDomain: "rv-coaching-system.firebaseapp.com",
@@ -11,81 +14,90 @@ const firebaseConfig = {
   measurementId: "G-ZE6FV5E0Y2"
 };
 
-// Initialize Firebase
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.firestore();
+// Initialize Firebase App
+const app = initializeApp(firebaseConfig);
+
+// Get service instances
+const auth = getAuth(app);
+const db = getFirestore(app);
 
 // -------------------------
-// AUTH HELPERS
+// AUTH HELPERS (UPDATED TO MODULAR)
 // -------------------------
 async function signupCreateUser(email, password, name, role = 'agent') {
-  const cred = await auth.createUserWithEmailAndPassword(email, password);
+  const cred = await createUserWithEmailAndPassword(auth, email, password); // Use modular function
   const uid = cred.user.uid;
-  await db.collection('users').doc(uid).set({
+  await setDoc(doc(db, 'users', uid), { // Use modular setDoc and doc
     email, name, role, createdAt: new Date()
   });
   return { uid, email, name, role };
 }
 
 async function loginUser(email, password) {
-  const cred = await auth.signInWithEmailAndPassword(email, password);
+  const cred = await signInWithEmailAndPassword(auth, email, password); // Use modular function
   const uid = cred.user.uid;
-  const userSnap = await db.collection('users').doc(uid).get();
-  if (!userSnap.exists) throw new Error('Profile not found');
+  const userSnap = await getDoc(doc(db, 'users', uid)); // Use modular getDoc and doc
+  if (!userSnap.exists()) throw new Error('Profile not found');
   return { uid, ...userSnap.data() };
 }
 
 async function logoutUser() {
-  await auth.signOut();
+  await signOut(auth); // Use modular function
 }
 
 // -------------------------
-// EVALUATIONS
+// EVALUATIONS (UPDATED TO MODULAR)
 // -------------------------
 async function addEvaluation(payload) {
-  const ref = await db.collection('evaluations').add({
+  const collectionRef = collection(db, 'evaluations'); // Get collection reference
+  const docRef = await addDoc(collectionRef, { // Use modular addDoc
     ...payload,
     createdAt: new Date()
   });
-  return ref.id;
+  return docRef.id;
 }
 
 async function listEvaluations() {
-  const snap = await db.collection('evaluations').get();
+  const collectionRef = collection(db, 'evaluations'); // Get collection reference
+  const q = query(collectionRef); // For queries if needed, though getDocs works directly
+  const snap = await getDocs(q); // Use modular getDocs
   return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
 
 // -------------------------
-// COACHING
+// COACHING (UPDATED TO MODULAR)
 // -------------------------
 async function addCoaching(payload) {
-  const ref = await db.collection('coaching').add({
+  const collectionRef = collection(db, 'coaching'); // Get collection reference
+  const docRef = await addDoc(collectionRef, { // Use modular addDoc
     ...payload,
     createdAt: new Date()
   });
-  return ref.id;
+  return docRef.id;
 }
 
 async function listCoaching() {
-  const snap = await db.collection('coaching').get();
+  const collectionRef = collection(db, 'coaching'); // Get collection reference
+  const q = query(collectionRef);
+  const snap = await getDocs(q); // Use modular getDocs
   return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
 
 async function acknowledgeCoaching(id, ackText) {
-  await db.collection('coaching').doc(id).update({
+  const docRef = doc(db, 'coaching', id); // Get specific document reference
+  await updateDoc(docRef, { // Use modular updateDoc
     ackText,
     ackDate: new Date()
   });
 }
 
 // -------------------------
-// ADMIN
+// ADMIN (UPDATED TO MODULAR)
 // -------------------------
 async function adminListAll() {
-  const usersSnap = await db.collection('users').get();
-  const membersSnap = await db.collection('members').get();
-  const critSnap = await db.collection('criteria').get();
+  const usersSnap = await getDocs(collection(db, 'users'));
+  const membersSnap = await getDocs(collection(db, 'members'));
+  const critSnap = await getDocs(collection(db, 'criteria'));
 
   return {
     users: usersSnap.docs.map(d => ({ id: d.id, ...d.data() })),
