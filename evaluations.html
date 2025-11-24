@@ -13,12 +13,15 @@
       background: rgba(0,0,0,0.5);
       align-items: center;
       justify-content: center;
+      z-index: 1000;
     }
     .modal {
       background: white;
       padding: 20px;
-      width: 420px;
+      width: 450px;
       border-radius: 8px;
+      max-height: 90vh;
+      overflow-y: auto;
     }
     .skill-row {
       margin-bottom: 12px;
@@ -73,9 +76,9 @@
       <tr>
         <th>Team Member</th>
         <th>Evaluator</th>
-        <th>Total Score</th>
-        <th>✔ Count</th>
-        <th>❌ Count</th>
+        <th>% Score</th>
+        <th>✔</th>
+        <th>❌</th>
         <th>View</th>
       </tr>
     </thead>
@@ -88,18 +91,23 @@
   <div class="modal">
     <h3>New Evaluation</h3>
 
+    <label>Date of Evaluation</label>
+    <input type="date" id="evDate">
+
     <label>Team Member</label>
     <select id="evMember"></select>
-
-    <label>Evaluation Date</label>
-    <input type="date" id="evDate">
 
     <label>Evaluator</label>
     <select id="evEvaluator"></select>
 
+    <label>Call ID / Email Link</label>
+    <input type="text" id="evCallId" placeholder="Paste call ID or email link">
+
+    <label>Summary</label>
+    <textarea id="evSummary" placeholder="Brief summary"></textarea>
+
     <h4>Skill Check (✔️ Meets | ❌ Needs Improvement)</h4>
 
-    <!-- SKILL SET -->
     <div class="skill-row">
       <label>Communication</label>
       <label><input type="radio" name="comm" value="yes"> ✔️</label>
@@ -152,16 +160,18 @@
     <label>Total Score</label>
     <input id="evTotal" readonly>
 
+    <label>Feedback</label>
+    <textarea id="evFeedback" placeholder="Overall feedback"></textarea>
+
     <button id="submitEval">Submit Evaluation</button>
     <button id="closeEvalModal">Cancel</button>
   </div>
 </div>
 
-<!-- FIREBASE LOGIC -->
+<!-- FIREBASE SCRIPT -->
 <script type="module">
   import { listEvaluations, addEvaluation, adminListAll, logoutUser } from './api-firebase.js';
 
-  // ========== SESSION PROTECT ==========
   if (!sessionStorage.getItem("rvc_user")) window.location.href = "index.html";
 
   document.getElementById("logoutBtn").addEventListener("click", async () => {
@@ -170,13 +180,13 @@
     window.location.href = "index.html";
   });
 
-  // ========== LOAD FILTER OPTIONS ==========
+  // Load members/users into dropdowns
   async function loadFilters() {
     const data = await adminListAll();
 
     data.members.forEach(m => {
-      filterMember.innerHTML += `<option value="${m[0]}">${m[0]}</option>`;
-      evMember.innerHTML += `<option value="${m[0]}">${m[0]}</option>`;
+      filterMember.innerHTML += `<option value="${m.name || m[0]}">${m.name || m[0]}</option>`;
+      evMember.innerHTML += `<option value="${m.name || m[0]}">${m.name || m[0]}</option>`;
     });
 
     data.users.forEach(u => {
@@ -185,17 +195,16 @@
     });
   }
 
-  // ========== LOAD TABLE ==========
-  async function loadEvaluations(filteredList = null) {
+  // Load table data
+  async function loadEvaluations(listOverride = null) {
+    const list = listOverride || await listEvaluations();
     const tbody = document.querySelector("#evalTable tbody");
     tbody.innerHTML = "";
 
-    const list = filteredList || await listEvaluations();
-
     list.forEach(r => {
-      const skillValues = r.skills ? Object.values(r.skills) : [];
-      const checks = skillValues.filter(s => s.value === "✔️").length;
-      const xes = skillValues.filter(s => s.value === "❌").length;
+      const skills = r.skills ? Object.values(r.skills) : [];
+      const checks = skills.filter(s => s.value === "✔️").length;
+      const xes = skills.filter(s => s.value === "❌").length;
 
       const tr = document.createElement("tr");
       tr.innerHTML = `
@@ -204,34 +213,35 @@
         <td>${r.total}</td>
         <td>${checks}</td>
         <td>${xes}</td>
-        <td><button onclick="alert('Details view coming soon')">View</button></td>
+        <td><button onclick="alert('View feature coming soon')">View</button></td>
       `;
       tbody.appendChild(tr);
     });
   }
 
-  // ========== FILTER SEARCH ==========
+  // Apply filters
   applyFilters.addEventListener("click", async () => {
-    const list = await listEvaluations();
-    const member = filterMember.value;
-    const evaluator = filterEvaluator.value;
-    const search = filterSearch.value.toLowerCase();
+    let list = await listEvaluations();
 
-    let filtered = list;
+    if (filterMember.value)
+      list = list.filter(e => e.member === filterMember.value);
 
-    if (member) filtered = filtered.filter(r => r.member === member);
-    if (evaluator) filtered = filtered.filter(r => r.evaluator === evaluator);
-    if (search) filtered = filtered.filter(r => JSON.stringify(r).toLowerCase().includes(search));
+    if (filterEvaluator.value)
+      list = list.filter(e => e.evaluator === filterEvaluator.value);
 
-    loadEvaluations(filtered);
+    if (filterSearch.value)
+      list = list.filter(e =>
+        JSON.stringify(e).toLowerCase().includes(filterSearch.value.toLowerCase())
+      );
+
+    loadEvaluations(list);
   });
 
-  // ========== MODAL CONTROLS ==========
+  // Modal controls
   const modal = document.getElementById("evalModal");
-  document.getElementById("openEvalModal").onclick = () => modal.style.display = "flex";
-  document.getElementById("closeEvalModal").onclick = () => modal.style.display = "none";
+  openEvalModal.onclick = () => modal.style.display = "flex";
+  closeEvalModal.onclick = () => modal.style.display = "none";
 
-  // ========== SKILL LOGIC ==========
   const skillPairs = [
     ["comm","commNotes"],
     ["rel","relNotes"],
@@ -259,55 +269,50 @@
       const selected = document.querySelector(`input[name="${name}"]:checked`);
       if (selected && selected.value === "yes") correct++;
     });
-    const percent = (correct / 7) * 100;
-    evTotal.value = percent.toFixed(2) + "%";
+    evTotal.value = ((correct / 7) * 100).toFixed(2) + "%";
   }
 
-  // ========== SUBMIT EVALUATION ==========
+  // Submit evaluation
   submitEval.addEventListener("click", async () => {
     const skillData = {};
     let correct = 0;
 
-    skillPairs.forEach(([name, notesId]) => {
+    for (const [name, notesId] of skillPairs) {
       const selected = document.querySelector(`input[name="${name}"]:checked`);
       const notes = document.getElementById(notesId).value;
 
-      if (!selected) {
-        alert("Please select ✔️ or ❌ for all skills.");
-        throw "missing";
-      }
-      if (selected.value === "no" && !notes.trim()) {
-        alert("Please enter reason for all ❌ marks.");
-        throw "missing notes";
-      }
+      if (!selected) return alert("Please answer all skills ✔️ / ❌");
+      if (selected.value === "no" && !notes.trim()) return alert("Provide notes for ❌");
 
       if (selected.value === "yes") correct++;
 
       skillData[name] = {
         value: selected.value === "yes" ? "✔️" : "❌",
-        notes: notes || ""
+        notes
       };
-    });
+    }
 
-    const percentage = (correct / 7) * 100;
+    const total = ((correct / 7) * 100).toFixed(2) + "%";
 
     const payload = {
       member: evMember.value,
       evaluator: evEvaluator.value,
       date: evDate.value,
-      total: percentage.toFixed(2) + "%",
+      callId: evCallId.value,
+      summary: evSummary.value,
+      feedback: evFeedback.value,
+      total,
       skills: skillData,
       createdAt: new Date()
     };
 
     await addEvaluation(payload);
-
     alert("Evaluation saved!");
     modal.style.display = "none";
     loadEvaluations();
   });
 
-  // INIT
+  // Initialize page
   loadFilters();
   loadEvaluations();
 
