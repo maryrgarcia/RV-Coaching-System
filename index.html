@@ -4,10 +4,6 @@
   <meta charset="UTF-8">
   <title>Royal Vending — Login</title>
   <link rel="stylesheet" href="assets/css/style.css">
-  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
-  <script src="api-firebase.js"></script>
 </head>
 <body>
   <div class="auth-card">
@@ -19,20 +15,25 @@
     <p id="authMessage" class="muted"></p>
   </div>
 
-  <script>
+  <!-- Use ES module to import from api-firebase.js -->
+  <script type="module">
+    import { loginUser } from './api-firebase.js';
+
     const loginBtn = document.getElementById('loginBtn');
     const goSignup = document.getElementById('goSignup');
     const authMessage = document.getElementById('authMessage');
 
     loginBtn.addEventListener('click', async () => {
-      const email = document.getElementById('username').value;
-      const password = document.getElementById('password').value;
+      const email = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value.trim();
       authMessage.textContent = 'Signing in…';
+
       try {
         const user = await loginUser(email, password);
+        // Save user in session storage
         sessionStorage.setItem('rvc_user', JSON.stringify(user));
         window.location.href = 'dashboard.html';
-      } catch(err) {
+      } catch (err) {
         authMessage.textContent = err.message || 'Login failed';
       }
     });
