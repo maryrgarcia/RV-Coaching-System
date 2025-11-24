@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Sign Up</title>
 
-  <!-- Firebase COMPAT SDK (must match index.html) -->
+  <!-- MUST MATCH index.html (COMPAT SDK) -->
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
@@ -30,7 +30,6 @@
     <select id="role">
       <option value="agent">Agent</option>
       <option value="admin">Admin</option>
-      <option value="evaluator">Evaluator</option>
     </select>
 
     <button id="signupBtn">Create Account</button>
@@ -38,7 +37,7 @@
     <p><a href="index.html">Back to Login</a></p>
   </div>
 
-  <!-- Must be AFTER Firebase libraries -->
+  <!-- Your Firebase wrapper MUST come after the SDK -->
   <script src="api-firebase.js"></script>
 
   <script>
@@ -47,7 +46,7 @@
     const btn = document.getElementById("signupBtn");
 
     if (!btn) {
-      console.error("signupBtn not found — check ID in HTML");
+      console.error("signupBtn not found — check the ID");
       return;
     }
 
