@@ -1,55 +1,297 @@
-Evaluations Page
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Evaluations — Royal Vending</title>
+  <link rel="stylesheet" href="assets/css/style.css">
 
-* Evaluations Page
-* Purpose: Record and view quality assessments.
-* Layout: Filter Bar:
-    * [Team Member] [Department] [Month] [Evaluator] [Score Range] [Search]
-	•	Button: ➕ “Add New Evaluation
-Modal (Add New Evaluation):
-* Team Member dropdown
-* Department Dropdown (Account Manager, Technical Support, Transport, Inventory)
-* Evaluation Date
-* Evaluator
-* Skill Categories
-(have an option to add and save skills depending on the department)
-* Comments/Notes box
-* Total Score auto-calculated
-* Submit button
+  <!-- Firebase compat -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
 
+  <script src="api-firebase.js"></script>
 
+  <style>
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    .modal-content {
+      background: #fff;
+      padding: 20px;
+      width: 700px;
+      max-height: 90vh;
+      overflow-y: auto;
+      border-radius: 8px;
+    }
+    .skill-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    .skill-row input[type="text"] {
+      flex: 1;
+    }
+    table { width: 100%; margin-top: 15px; }
+    th, td { padding: 6px; }
+  </style>
+</head>
 
-Everything looks fine but it does not show the other users when I click the dropdown, can you please also remove the existing skills set and have these skills show for each department:
+<body>
+<header>
+  <img src="assets/images/logo.png" class="logo">
+  <nav>
+    <a href="dashboard.html">Dashboard</a>
+    <a href="evaluations.html">Evaluations</a>
+    <a href="coaching.html">Coaching Logs</a>
+    <a href="reports.html">Reports</a>
+    <a href="admin.html">Admin</a>
+    <button id="logoutBtn">Logout</button>
+  </nav>
+</header>
 
-Account Manager
-Communication
-Relationship Building
-Problem-Solving
-Task Management
-Customer Service
-Analytical & Reporting Skills
-Accuracy & Attention to Detail
+<main>
+  <h1>Evaluations</h1>
 
-Inventory:
-Stock Accuracy & Auditing
-Forecasting & Demand Planning
-Supplier & Purchasing Coordination
-Communication & Reporting
-Problem Solving & Decision Making
-Time Management & Prioritization
+  <!-- FILTER BAR -->
+  <div>
+    <input placeholder="Team Member">
+    <select id="filterDept">
+      <option value="">Department</option>
+      <option>Account Manager</option>
+      <option>Technical Support</option>
+      <option>Transport</option>
+      <option>Inventory</option>
+    </select>
+    <input type="month">
+    <input placeholder="Evaluator">
+    <input placeholder="Score Range">
+    <input placeholder="Search">
+    <button id="openEvalModal">+ Add New Evaluation</button>
+  </div>
 
+  <!-- TABLE -->
+  <table border="1">
+    <thead>
+      <tr>
+        <th>Team Member</th>
+        <th>Department</th>
+        <th>Evaluator</th>
+        <th>Date</th>
+        <th>Total</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="evalTable"></tbody>
+  </table>
+</main>
 
-Transport:
-Communication Skills
-Critical Thinking
-Always One Step Ahead (Forward Planning)
-Resourcefulness
-Attention to Detail
-Time Management
+<!-- MODAL -->
+<div class="modal" id="evalModal">
+  <div class="modal-content">
+    <h2>Add New Evaluation</h2>
 
-Technical Support:
-Technical Knowledge
-Troubleshooting Skills
-Problem Solving
-Communication Skills
-Customer Service Skills
-Time Management
+    <label>Team Member</label>
+    <select id="memberSelect"></select>
+
+    <label>Department</label>
+    <select id="departmentSelect"></select>
+
+    <label>Evaluation Date</label>
+    <input type="date" id="evalDate">
+
+    <label>Evaluator</label>
+    <input id="evaluator">
+
+    <label>Call ID / Email Link</label>
+    <input id="callId">
+
+    <label>Summary</label>
+    <textarea id="summary"></textarea>
+
+    <h3>Skills</h3>
+    <div id="skillsContainer"></div>
+
+    <label>Feedback</label>
+    <textarea id="feedback"></textarea>
+
+    <h3>Total Score: <span id="totalScore">0%</span></h3>
+
+    <button id="saveEvaluation">Submit</button>
+    <button onclick="closeModal()">Cancel</button>
+  </div>
+</div>
+
+<script>
+const skillsByDept = {
+  "Account Manager": [
+    "Communication",
+    "Relationship Building",
+    "Problem-Solving",
+    "Task Management",
+    "Customer Service",
+    "Analytical & Reporting Skills",
+    "Accuracy & Attention to Detail"
+  ],
+  "Inventory": [
+    "Stock Accuracy & Auditing",
+    "Forecasting & Demand Planning",
+    "Supplier & Purchasing Coordination",
+    "Communication & Reporting",
+    "Problem Solving & Decision Making",
+    "Time Management & Prioritization"
+  ],
+  "Transport": [
+    "Communication Skills",
+    "Critical Thinking",
+    "Always One Step Ahead (Forward Planning)",
+    "Resourcefulness",
+    "Attention to Detail",
+    "Time Management"
+  ],
+  "Technical Support": [
+    "Technical Knowledge",
+    "Troubleshooting Skills",
+    "Problem Solving",
+    "Communication Skills",
+    "Customer Service Skills",
+    "Time Management"
+  ]
+};
+
+const modal = document.getElementById("evalModal");
+const skillsContainer = document.getElementById("skillsContainer");
+const deptSelect = document.getElementById("departmentSelect");
+
+document.getElementById("openEvalModal").onclick = openModal;
+document.getElementById("logoutBtn").onclick = async () => {
+  await logoutUser();
+  location.href = "index.html";
+};
+
+function openModal() {
+  modal.style.display = "flex";
+}
+
+function closeModal() {
+  modal.style.display = "none";
+}
+
+async function loadUsers() {
+  const snap = await firebase.firestore().collection("users").get();
+  const sel = document.getElementById("memberSelect");
+  sel.innerHTML = "";
+  snap.forEach(d => {
+    const o = document.createElement("option");
+    o.value = d.data().name || d.data().email;
+    o.textContent = d.data().name || d.data().email;
+    sel.appendChild(o);
+  });
+}
+
+function loadDepartments() {
+  deptSelect.innerHTML = `<option value="">Select Department</option>`;
+  Object.keys(skillsByDept).forEach(d => {
+    const o = document.createElement("option");
+    o.value = d;
+    o.textContent = d;
+    deptSelect.appendChild(o);
+  });
+}
+
+deptSelect.onchange = () => {
+  skillsContainer.innerHTML = "";
+  skillsByDept[deptSelect.value].forEach(s => {
+    const row = document.createElement("div");
+    row.className = "skill-row";
+    row.innerHTML = `
+      <strong>${s}</strong>
+      <select>
+        <option value="✔️">✔️</option>
+        <option value="❌">❌</option>
+      </select>
+      <input placeholder="Notes (required if ❌)">
+    `;
+    skillsContainer.appendChild(row);
+  });
+};
+
+skillsContainer.addEventListener("change", calcScore);
+
+function calcScore() {
+  const selects = skillsContainer.querySelectorAll("select");
+  let checks = 0;
+  selects.forEach(s => s.value === "✔️" && checks++);
+  const pct = ((checks / selects.length) * 100).toFixed(2);
+  document.getElementById("totalScore").textContent = pct + "%";
+}
+
+document.getElementById("saveEvaluation").onclick = async () => {
+  const skills = {};
+  skillsContainer.querySelectorAll(".skill-row").forEach(r => {
+    const name = r.querySelector("strong").textContent;
+    skills[name] = {
+      value: r.querySelector("select").value,
+      notes: r.querySelector("input").value
+    };
+  });
+
+  await firebase.firestore().collection("evaluations").add({
+    member: memberSelect.value,
+    department: deptSelect.value,
+    evaluator: evaluator.value,
+    date: evalDate.value,
+    callId: callId.value,
+    summary: summary.value,
+    feedback: feedback.value,
+    skills,
+    total: document.getElementById("totalScore").textContent,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+
+  alert("Evaluation saved");
+  closeModal();
+  loadEvaluations();
+};
+
+async function loadEvaluations() {
+  const tbody = document.getElementById("evalTable");
+  tbody.innerHTML = "";
+  const snap = await firebase.firestore().collection("evaluations").get();
+  snap.forEach(d => {
+    const e = d.data();
+    tbody.innerHTML += `
+      <tr>
+        <td>${e.member}</td>
+        <td>${e.department}</td>
+        <td>${e.evaluator}</td>
+        <td>${e.date}</td>
+        <td>${e.total}</td>
+        <td>
+          <button onclick="deleteEval('${d.id}')">Delete</button>
+        </td>
+      </tr>
+    `;
+  });
+}
+
+async function deleteEval(id) {
+  if (confirm("Delete evaluation?")) {
+    await firebase.firestore().collection("evaluations").doc(id).delete();
+    loadEvaluations();
+  }
+}
+
+loadUsers();
+loadDepartments();
+loadEvaluations();
+</script>
+</body>
+</html>
